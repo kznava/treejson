@@ -610,7 +610,7 @@ export default function Home() {
               
               <div className="flex items-center">
                 <span className={`text-orange-500 font-semibold ${isMobileView ? 'text-lg' : 'text-xl'} mr-1`}>⦿</span>
-                <span className={`font-semibold text-gray-700 dark:text-gray-300 ${isMobileView ? 'text-sm' : ''}`}>JSONTree</span>
+                <span className={`font-semibold text-gray-700 dark:text-gray-300 ${isMobileView ? 'text-sm' : ''}`}>TreeJSON</span>
               </div>
               
               {/* Hide search on mobile when editor is shown */}
@@ -981,7 +981,7 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
               <span className={`text-orange-500 font-semibold ${isMobileView ? 'text-base' : 'text-xl'} mr-1`}>⦿</span>
-              <span className={`${isMobileView ? 'text-[10px]' : 'text-xs'} text-gray-700 dark:text-gray-300`}>JSON Tree</span>
+              <span className={`${isMobileView ? 'text-[10px]' : 'text-xs'} text-gray-700 dark:text-gray-300`}>TreeJSON</span>
             </div>
           </div>
           
@@ -1005,7 +1005,7 @@ export default function Home() {
               kznava.dev
             </a>
             <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">•</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">v0.1.0</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">v0.1.2</span>
           </div>
           
           <div className="flex items-center">
