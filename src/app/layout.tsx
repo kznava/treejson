@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TreeJSON - JSON Editor and Viewer",
   description: "Edit and visualize JSON in a split-screen interface",
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
