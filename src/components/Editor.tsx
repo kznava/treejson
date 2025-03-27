@@ -309,10 +309,16 @@ const EditorContent = memo(({ value, isValid, handleChange, noHeader, setJsonTem
   noHeader?: boolean,
   setJsonTemplate: (templateType: string) => void
 }) => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [editorMounted, setEditorMounted] = useState(false);
   const [jsonType, setJsonType] = useState('package');
   
+  // Handle theme mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Define a function to set up editor themes when Monaco is available
   const handleEditorBeforeMount = (monaco: any) => {
     // Register custom themes
@@ -324,14 +330,49 @@ const EditorContent = memo(({ value, isValid, handleChange, noHeader, setJsonTem
     setEditorMounted(true);
   };
   
-  // Get the appropriate theme name
-  const editorTheme = theme === 'dark' ? 'custom-dark' : 'custom-light';
+  // Get the appropriate theme name - use resolvedTheme which is more reliable
+  const editorTheme = resolvedTheme === 'dark' ? 'custom-dark' : 'custom-light';
+  
+  // Force editor to update when theme changes
+  const editorRef = useRef<any>(null);
+  const handleEditorMount = (editor: any) => {
+    editorRef.current = editor;
+    setEditorMounted(true);
+  };
+
+  // Update editor theme when resolved theme changes
+  useEffect(() => {
+    if (editorMounted && editorRef.current) {
+      window.setTimeout(() => {
+        editorRef.current.updateOptions({ theme: editorTheme });
+      }, 0);
+    }
+  }, [resolvedTheme, editorMounted, editorTheme]);
   
   // Handle template change
   const handleTemplateChange = (type: string) => {
     setJsonType(type);
     setJsonTemplate(type);
   };
+  
+  // Use a minimal loading state during hydration
+  if (!mounted) {
+    return (
+      <Card className="h-full flex flex-col rounded-none border-0 shadow-none">
+        {!noHeader && (
+          <CardHeader className="px-4 py-2 border-b border-gray-200 dark:border-[#222633] flex flex-row items-center bg-white dark:bg-[#161B26]">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-200">JSON Editor</CardTitle>
+            <div className="ml-auto"></div>
+          </CardHeader>
+        )}
+        <CardContent className="p-0 flex-1 overflow-hidden bg-white dark:bg-[#0E1117]">
+          <div className="h-full w-full flex items-center justify-center">
+            <p className="text-gray-500 dark:text-gray-400">Loading editor...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card className="h-full flex flex-col rounded-none border-0 shadow-none">
@@ -428,7 +469,7 @@ const EditorContent = memo(({ value, isValid, handleChange, noHeader, setJsonTem
           onChange={handleChange}
           theme={editorTheme}
           beforeMount={handleEditorBeforeMount}
-          onMount={handleEditorDidMount}
+          onMount={handleEditorMount}
           options={{
             minimap: { enabled: false },
             folding: true,
@@ -450,6 +491,8 @@ const EditorContent = memo(({ value, isValid, handleChange, noHeader, setJsonTem
               bottom: 12
             }
           }}
+          className="w-full h-full"
+          loading={<div className="h-full w-full flex items-center justify-center text-gray-500 dark:text-gray-400">Loading editor...</div>}
         />
       </CardContent>
     </Card>
