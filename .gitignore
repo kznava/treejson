@@ -39,3 +39,27 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.vs/
+*.sublime-project
+*.sublime-workspace
+
+# Cursor-specific files
+.cursor/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Optional - local development files
+.turbopack/
+.turbo/
+
+# Cache directories
+.cache/
