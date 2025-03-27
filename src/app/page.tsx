@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Editor } from '@/components/Editor';
 import { JSONTree } from '@/components/JSONTree';
-import { Search, Download, Settings, Share2, HelpCircle, AlignJustify, Code, GitBranch, Sun, Moon, Keyboard, FileJson, PackageIcon, PackageCheck, Users, Database, Github, UserRound, Loader2 } from 'lucide-react';
+import { Search, Download, AlignJustify, Code, GitBranch, Sun, Moon, Keyboard, FileJson, PackageIcon, PackageCheck, Users, Database, Github, UserRound, Loader2, MenuIcon, X, FolderTree, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -31,6 +31,8 @@ export default function Home() {
   const [showShortcutsMenu, setShowShortcutsMenu] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('package');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [showEditor, setShowEditor] = useState(true);
 
   // Add reference to the JSONTree container
   const jsonTreeContainerRef = useRef<HTMLDivElement>(null);
@@ -41,6 +43,20 @@ export default function Home() {
     
     // Default to 20% of container width initially
     setSplitPosition(20);
+    
+    // Check if we're on a mobile device
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkMobileView();
+    
+    // Add event listener
+    window.addEventListener('resize', checkMobileView);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
   const handleJsonChange = useCallback((json: any, valid: boolean) => {
@@ -571,271 +587,386 @@ export default function Home() {
     }
   }, [jsonData, theme]);
 
+  // Toggle editor visibility for mobile view
+  const toggleEditor = useCallback(() => {
+    setShowEditor(prev => !prev);
+  }, []);
+
   return (
     <>
       <ThemeDetector />
-      <div 
-        className="flex flex-col h-screen bg-white dark:bg-[#0E1117] text-gray-800 dark:text-white"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
-        <header className="flex items-center border-b border-gray-200 dark:border-[#222633] px-4 py-2 bg-white dark:bg-[#0E1117]">
-          <div className="flex items-center">
-            <div 
-              className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" 
-              onClick={() => window.location.reload()}
-              title="Refresh page"
-            >
-              <span className="text-orange-500 font-semibold text-xl mr-1">⦿</span>
-              <h1 className="text-md font-semibold">JSON Tree</h1>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center space-x-2">
-           
-            <div className="relative w-64">
-              <Input 
-                placeholder="Search Node" 
-                className="bg-gray-50 dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] h-8 text-sm pl-8 rounded-md"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
-              <Search className="h-4 w-4 absolute left-2 top-2 text-gray-400" />
-              {searchTerm && (
-                <>
-                  {searchResults.total > 0 && (
-                    <div className="absolute right-8 top-2 flex items-center space-x-1 text-xs text-gray-400">
+      <div className="flex flex-col h-screen overflow-hidden">
+        <header className="border-b border-gray-200 dark:border-[#222633] py-3 px-4 bg-white dark:bg-[#0E1117]">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              {/* Mobile menu toggle */}
+              <button 
+                className="md:hidden mr-2 p-1 text-gray-500 hover:text-orange-500"
+                onClick={toggleEditor}
+                aria-label="Toggle editor"
+              >
+                {showEditor ? <X size={16} /> : <AlignJustify size={16} />}
+              </button>
+              
+              <div className="flex items-center">
+                <span className={`text-orange-500 font-semibold ${isMobileView ? 'text-lg' : 'text-xl'} mr-1`}>⦿</span>
+                <span className={`font-semibold text-gray-700 dark:text-gray-300 ${isMobileView ? 'text-sm' : ''}`}>JSONTree</span>
+              </div>
+              
+              {/* Hide search on mobile when editor is shown */}
+              <div className={`relative ${isMobileView && showEditor ? 'hidden' : 'flex'}`}>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Search className={`${isMobileView ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-gray-400`} />
+                  </div>
+                  <input 
+                    type="text"
+                    placeholder="Search Node"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className={`pl-8 py-1 pr-16 ${isMobileView ? 'h-7 text-xs' : 'h-8 text-sm'} bg-gray-50 dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] rounded-md text-gray-700 dark:text-gray-300 w-full max-w-[200px] focus:ring-1 focus:ring-orange-500 focus:border-orange-500`}
+                  />
+                  {searchTerm && (
+                    <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
                       <button 
-                        onClick={navigateToPrevResult} 
-                        className="hover:text-orange-500 focus:outline-none disabled:opacity-50 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1A2333] transition-colors"
-                        aria-label="Previous result (Shift+F3)"
-                        title="Previous result (Shift+F3)"
-                        disabled={searchResults.total <= 1}
+                        onClick={clearSearch}
+                        className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                        aria-label="Clear search"
+                        title="Clear search"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 18L9 12L15 6" />
-                        </svg>
-                      </button>
-                      <span className={searchResults.total > 1 ? "text-orange-500 font-medium px-1" : ""}>
-                        {searchResults.current}/{searchResults.total}
-                      </span>
-                      <button 
-                        onClick={navigateToNextResult} 
-                        className="hover:text-orange-500 focus:outline-none disabled:opacity-50 px-1 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1A2333] transition-colors"
-                        aria-label="Next result (F3)"
-                        title="Next result (F3)"
-                        disabled={searchResults.total <= 1}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 6L15 12L9 18" />
-                        </svg>
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   )}
-                  <button 
-                    onClick={clearSearch}
-                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                    aria-label="Clear search"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                </>
-              )}
+                </div>
+                {searchResults.total > 0 && (
+                  <div className="ml-1 flex items-center space-x-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {searchResults.current}/{searchResults.total}
+                    </span>
+                    <div className="flex items-center">
+                      <button 
+                        onClick={navigateToPrevResult}
+                        className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        disabled={searchResults.total <= 1}
+                        aria-label="Previous search result"
+                        title="Previous search result"
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </button>
+                      <button 
+                        onClick={navigateToNextResult}
+                        className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        disabled={searchResults.total <= 1}
+                        aria-label="Next search result"
+                        title="Next search result"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]" disabled={isDownloading}>
-                  {isDownloading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => downloadVisibleTree('png')}
-                  disabled={isDownloading}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-image">
-                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-                    <path d="M10 14 L8 12 L6 14"/>
-                    <circle cx="14" cy="12" r="2"/>
-                    <path d="m7 18 5-5 5 5"/>
-                  </svg>
-                  <div className="flex flex-col">
-                    <span>Download as PNG</span>
-                    <span className="text-xs text-green-500 dark:text-green-400">BETA</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => downloadVisibleTree('svg')}
-                  disabled={isDownloading}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-                    <text x="6.5" y="18" fontSize="6" fill="currentColor">SVG</text>
-                  </svg>
-                  <div className="flex flex-col">
-                    <span>Download as SVG</span>
-                    <span className="text-xs text-gray-400">May have compatibility issues</span>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>     
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label="Toggle theme"
-              title="Toggle theme"
-            >
-              <Sun className="h-4 w-4 dark:hidden block" />
-              <Moon className="h-4 w-4 hidden dark:block" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]">
-             <a href="https://github.com/kznava/treejson" rel="noopener noreferrer" target="_blank"> <Github className="h-4 w-4" /> </a>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 text-xs bg-white dark:bg-[#0E1117] border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
-                >
-                  <FileJson className="h-4 w-4 text-orange-500" />
-                  <span>Templates</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
-               
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => handleTemplateChange('package')}
-                >
-                  <PackageIcon className="h-4 w-4" />
-                  <span>Package.json</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => handleTemplateChange('package-lock')}
-                >
-                  <PackageCheck className="h-4 w-4" />
-                  <span>Package-lock.json</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => handleTemplateChange('geojson')}
-                >
-                  <Database className="h-4 w-4" />
-                  <span>GeoJSON</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => handleTemplateChange('person')}
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Nested JSON</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => handleTemplateChange('userdata')}
-                >
-                  <UserRound className="h-4 w-4" />
-                  <span>JSON Array</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                  onClick={() => handleTemplateChange('youtube')}
-                >
-                  <Code className="h-4 w-4" />
-                  <span>YouTube JSON</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="ml-2">
+            
+            {/* Hide unnecessary buttons on mobile */}
+            <div className={`flex items-center space-x-1 ${isMobileView ? 'hidden md:flex' : ''}`}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-xs bg-white dark:bg-[#0E1117] border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
-                    Shortcuts
-                    <Keyboard className="h-3 w-3 ml-1" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]"
+                    aria-label="Export options"
+                    title="Export options"
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-orange-500">Search</div>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Find</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+F</span>
+                <DropdownMenuContent className="bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => downloadVisibleTree('png')}
+                    disabled={isDownloading}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-image">
+                      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                      <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                      <path d="M10 14 L8 12 L6 14"/>
+                      <circle cx="14" cy="12" r="2"/>
+                      <path d="m7 18 5-5 5 5"/>
+                    </svg>
+                    <div className="flex flex-col">
+                      <span>Download as PNG</span>
+                      <span className="text-xs text-green-500 dark:text-green-400">BETA</span>
+                    </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Next match</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">F3</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Previous match</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Shift+F3</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#222633]" />
-                  <div className="px-2 py-1.5 text-xs font-semibold text-orange-500">Navigation</div>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Expand all</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+K</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Collapse all</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+J</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Reset zoom</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+0</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Zoom in</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex justify-between text-xs">
-                    <span>Zoom out</span>
-                    <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl-</span>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => downloadVisibleTree('svg')}
+                    disabled={isDownloading}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                      <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                      <text x="6.5" y="18" fontSize="6" fill="currentColor">SVG</text>
+                    </svg>
+                    <div className="flex flex-col">
+                      <span>Download as SVG</span>
+                      <span className="text-xs text-gray-400">May have compatibility issues</span>
+                    </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                <Sun className="h-4 w-4 dark:hidden block" />
+                <Moon className="h-4 w-4 hidden dark:block" />
+              </Button>
+              
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]">
+               <a href="https://github.com/kznava/treejson" rel="noopener noreferrer" target="_blank"> <Github className="h-4 w-4" /> </a>
+              </Button>
+              
+              {/* Templates dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs bg-white dark:bg-[#0E1117] border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300 flex items-center gap-1.5"
+                  >
+                    <FileJson className="h-4 w-4 text-orange-500" />
+                    <span>Templates</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
+                 
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => handleTemplateChange('package')}
+                  >
+                    <PackageIcon className="h-4 w-4" />
+                    <span>Package.json</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => handleTemplateChange('package-lock')}
+                  >
+                    <PackageCheck className="h-4 w-4" />
+                    <span>Package-lock.json</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => handleTemplateChange('geojson')}
+                  >
+                    <Database className="h-4 w-4" />
+                    <span>GeoJSON</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => handleTemplateChange('person')}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Nested JSON</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => handleTemplateChange('userdata')}
+                  >
+                    <UserRound className="h-4 w-4" />
+                    <span>JSON Array</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                    onClick={() => handleTemplateChange('youtube')}
+                  >
+                    <Code className="h-4 w-4" />
+                    <span>YouTube JSON</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Hide shortcuts on mobile */}
+              <div className={`ml-2 ${isMobileView ? 'hidden md:block' : ''}`}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs bg-white dark:bg-[#0E1117] border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
+                      Shortcuts
+                      <Keyboard className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-orange-500">Search</div>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Find</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+F</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Next match</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">F3</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Previous match</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Shift+F3</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#222633]" />
+                    <div className="px-2 py-1.5 text-xs font-semibold text-orange-500">Navigation</div>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Expand all</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+K</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Collapse all</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+J</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Reset zoom</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+0</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Zoom in</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl+</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="flex justify-between text-xs">
+                      <span>Zoom out</span>
+                      <span className="bg-gray-100 dark:bg-[#222633] px-1.5 py-0.5 rounded">Ctrl-</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            
+            {/* Mobile-only controls */}
+            <div className="flex items-center space-x-2 md:hidden">
+              {/* Templates dropdown for mobile - make it visible alongside the editor toggle */}
+              {showEditor && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 text-xs bg-white dark:bg-[#0E1117] border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300 flex items-center gap-1"
+                    >
+                      <FileJson className="h-3.5 w-3.5 text-orange-500" />
+                      <span>Templates</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-white dark:bg-[#1A2333] border border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300">
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      onClick={() => handleTemplateChange('package')}
+                    >
+                      <PackageIcon className="h-4 w-4" />
+                      <span>Package.json</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      onClick={() => handleTemplateChange('package-lock')}
+                    >
+                      <PackageCheck className="h-4 w-4" />
+                      <span>Package-lock.json</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      onClick={() => handleTemplateChange('geojson')}
+                    >
+                      <Database className="h-4 w-4" />
+                      <span>GeoJSON</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      onClick={() => handleTemplateChange('person')}
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Nested JSON</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      onClick={() => handleTemplateChange('userdata')}
+                    >
+                      <UserRound className="h-4 w-4" />
+                      <span>JSON Array</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      onClick={() => handleTemplateChange('youtube')}
+                    >
+                      <Code className="h-4 w-4" />
+                      <span>YouTube JSON</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              {/* Theme toggle for mobile */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                aria-label="Toggle theme"
+                title="Toggle theme"
+              >
+                <Sun className="h-3.5 w-3.5 dark:hidden block" />
+                <Moon className="h-3.5 w-3.5 hidden dark:block" />
+              </Button>
+              
+              {/* GitHub link for mobile */}
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-[#1A2333]">
+                <a href="https://github.com/kznava/treejson" rel="noopener noreferrer" target="_blank" aria-label="GitHub Repository"> 
+                  <Github className="h-3.5 w-3.5" /> 
+                </a>
+              </Button>
             </div>
           </div>
         </header>
         <main className="flex-1 overflow-hidden flex bg-white dark:bg-[#0E1117]" ref={containerRef}>
-          {/* Left Panel */}
-          <div 
-            className="h-full"
-            style={{ 
-              width: splitPosition ? `${splitPosition}%` : '20%', // Default to 20% when not yet calculated
-              minWidth: '15%',
-              maxWidth: '30%'
-            }}
-          >
-            <Editor onJsonChange={handleJsonChange} noHeader={true} templateType={selectedTemplate} />
-          </div>
+          {/* Left Panel (Editor) - Hide in mobile view when toggle is off */}
+          {(!isMobileView || showEditor) && (
+            <div 
+              className={`h-full ${isMobileView ? 'absolute z-10 left-0 right-0 top-[57px] bottom-0' : ''}`}
+              style={{ 
+                width: isMobileView ? '100%' : (splitPosition ? `${splitPosition}%` : '20%'),
+                minWidth: isMobileView ? '100%' : '15%',
+                maxWidth: isMobileView ? '100%' : '30%'
+              }}
+            >
+              <Editor onJsonChange={handleJsonChange} noHeader={true} templateType={selectedTemplate} />
+            </div>
+          )}
           
-          {/* Resize Handle */}
-          <div 
-            className="cursor-col-resize relative w-[5px] h-full bg-gray-200 dark:bg-[#222633] hover:bg-orange-400 dark:hover:bg-orange-400 transition-colors"
-            onMouseDown={handleMouseDown}
-          >
-            <div className={`absolute h-8 w-1 left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 rounded bg-gray-400 dark:bg-blue-400 ${isDragging ? 'opacity-100' : 'opacity-0 hover:opacity-100'} transition-opacity`} />
-          </div>
+          {/* Resize Handle - Only show in desktop view */}
+          {!isMobileView && (
+            <div 
+              className="cursor-col-resize relative w-[5px] h-full bg-gray-200 dark:bg-[#222633] hover:bg-orange-400 dark:hover:bg-orange-400 transition-colors"
+              onMouseDown={handleMouseDown}
+            >
+              <div className={`absolute h-8 w-1 left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 rounded bg-gray-400 dark:bg-blue-400 ${isDragging ? 'opacity-100' : 'opacity-0 hover:opacity-100'} transition-opacity`} />
+            </div>
+          )}
           
-          {/* Right Panel */}
+          {/* Right Panel (JSONTree) - Full width on mobile when editor is hidden */}
           <div 
-            className="h-full flex-1"
+            className={`h-full ${isMobileView && showEditor ? 'hidden' : 'flex-1'}`}
             ref={jsonTreeRef}
           >
-            <div ref={jsonTreeContainerRef}>
+            <div 
+              ref={jsonTreeContainerRef}
+              className={isMobileView ? 'overflow-x-auto overflow-y-auto px-1 pt-2 w-full' : ''}
+              style={isMobileView ? { fontSize: '0.8rem' } : {}}
+            >
               <JSONTree 
                 jsonData={jsonData} 
                 noHeader={true} 
@@ -846,31 +977,44 @@ export default function Home() {
             </div>
           </div>
         </main>
-        <footer className="border-t border-gray-200 dark:border-[#222633] py-1 px-4 flex justify-between items-center bg-white dark:bg-[#0E1117]">
+        <footer className={`border-t border-gray-200 dark:border-[#222633] ${isMobileView ? 'py-0.5' : 'py-1'} px-4 flex justify-between items-center bg-white dark:bg-[#0E1117]`}>
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-              <span className="text-orange-500 font-semibold text-xl mr-1">⦿</span>
-              <span className="text-xs text-gray-700 dark:text-gray-300">JSON Tree</span>
+              <span className={`text-orange-500 font-semibold ${isMobileView ? 'text-base' : 'text-xl'} mr-1`}>⦿</span>
+              <span className={`${isMobileView ? 'text-[10px]' : 'text-xs'} text-gray-700 dark:text-gray-300`}>JSON Tree</span>
             </div>
           </div>
-          <div className="flex items-center">
+          
+          {/* Mobile editor toggle button in footer */}
+          {isMobileView && (
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-6 text-[10px] bg-white dark:bg-[#0E1117] border-gray-200 dark:border-[#2D3748] text-gray-700 dark:text-gray-300"
+                onClick={toggleEditor}
+              >
+                {showEditor ? 'Show Tree' : 'Edit JSON'}
+              </Button>
+            </div>
+          )}
+          
+          {/* Hide some footer elements on mobile */}
+          <div className={`flex items-center ${isMobileView ? 'hidden md:flex' : ''}`}>
             <a href="https://kznava.dev" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-600 dark:text-gray-300 hover:text-orange-500 transition-colors">
               kznava.dev
             </a>
             <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">•</span>
             <span className="text-xs text-gray-500 dark:text-gray-400">v0.1.0</span>
           </div>
+          
           <div className="flex items-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mx-1">(</span>
-            <span className="text-xs text-blue-500 dark:text-blue-400">JSON</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 mx-1">)</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 mx-2">•</span>
-            <span className={`text-xs ${isValid ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-              {isValid ? 'Valid JSON format' : 'Invalid JSON format'}
+            <span className={`${isMobileView ? 'text-[10px]' : 'text-xs'} ${isValid ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+              {isValid ? 'Valid JSON' : 'Invalid JSON'}
             </span>
           </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
     </>
   );
 }
